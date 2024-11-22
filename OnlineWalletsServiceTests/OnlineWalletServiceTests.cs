@@ -1,5 +1,6 @@
 ﻿using Betsson.OnlineWallets.Data.Models;
 using Betsson.OnlineWallets.Data.Repositories;
+using Betsson.OnlineWallets.Exceptions;
 using Betsson.OnlineWallets.Models;
 using Betsson.OnlineWallets.Services;
 using FluentAssertions;
@@ -96,5 +97,65 @@ namespace Betsson.OnlineWallets.UnitTests
             result.Amount.Should().Be(300);
             _mockRepository.Verify(repo => repo.InsertOnlineWalletEntryAsync(It.IsAny<OnlineWalletEntry>()), Times.Once);
         }
+
+        [Fact]
+        public async Task WithdrawFundsAsync_ShouldDecreaseBalance_WhenWithdrawalIsValid()
+        {
+            // Arrange
+            var withdrawal = new Withdrawal { Amount = 50 };
+            _mockRepository
+                .Setup(repo => repo.GetLastOnlineWalletEntryAsync())
+                .ReturnsAsync(new OnlineWalletEntry { Amount = 200, BalanceBefore = 300 });
+
+            _mockRepository
+                .Setup(repo => repo.InsertOnlineWalletEntryAsync(It.IsAny<OnlineWalletEntry>()))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            Balance result = await _service.WithdrawFundsAsync(withdrawal);
+
+            // Assert
+            result.Amount.Should().Be(450);
+            _mockRepository.Verify(repo => repo.InsertOnlineWalletEntryAsync(It.IsAny<OnlineWalletEntry>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task WithdrawFundsAsync_ShouldThrowException_WhenInsufficientBalance()
+        {
+            // Arrange
+            var withdrawal = new Withdrawal { Amount = 500 };
+            _mockRepository
+                .Setup(repo => repo.GetLastOnlineWalletEntryAsync())
+                .ReturnsAsync(new OnlineWalletEntry { Amount = 100, BalanceBefore = 200 });
+
+            // Act
+            Func<Task> act = async () => await _service.WithdrawFundsAsync(withdrawal);
+
+            // Assert
+            await act.Should().ThrowAsync<InsufficientBalanceException>();
+            _mockRepository.Verify(repo => repo.InsertOnlineWalletEntryAsync(It.IsAny<OnlineWalletEntry>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task WithdrawFundsAsync_ShouldNotChangeBalance_WhenWithdrawalIsZero()
+        {
+            // Arrange
+            var withdrawal = new Withdrawal { Amount = 0 };
+            _mockRepository
+                .Setup(repo => repo.GetLastOnlineWalletEntryAsync())
+                .ReturnsAsync(new OnlineWalletEntry { Amount = 200, BalanceBefore = 300 });
+
+            _mockRepository
+                .Setup(repo => repo.InsertOnlineWalletEntryAsync(It.IsAny<OnlineWalletEntry>()))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            Balance result = await _service.WithdrawFundsAsync(withdrawal);
+
+            // Assert
+            result.Amount.Should().Be(500);
+            _mockRepository.Verify(repo => repo.InsertOnlineWalletEntryAsync(It.IsAny<OnlineWalletEntry>()), Times.Once);
+        }
+
     }
 }
