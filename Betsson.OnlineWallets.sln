@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Betsson.OnlineWallets", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Betsson.OnlineWallets.Data", "src\Betsson.OnlineWallets.Data\Betsson.OnlineWallets.Data.csproj", "{4D65DE1B-3A57-4E78-981D-2D1279995F6D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnlineWalletsServiceTests", "OnlineWalletsServiceTests\OnlineWalletsServiceTests.csproj", "{734A19E0-9363-4837-9D48-68F1CA4C35BD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Betsson.OnlineWallets.UnitTests", "OnlineWalletsServiceTests\Betsson.OnlineWallets.UnitTests.csproj", "{734A19E0-9363-4837-9D48-68F1CA4C35BD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
