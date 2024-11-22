@@ -55,5 +55,46 @@ namespace Betsson.OnlineWallets.UnitTests
             _mockRepository.Verify(repo => repo.GetLastOnlineWalletEntryAsync(), Times.Once);
         }
 
+        [Fact]
+        public async Task DepositFundsAsync_ShouldIncreaseBalance_WhenDepositIsMade()
+        {
+            // Arrange
+            var deposit = new Deposit { Amount = 100 };
+            _mockRepository
+                .Setup(repo => repo.GetLastOnlineWalletEntryAsync())
+                .ReturnsAsync(new OnlineWalletEntry { Amount = 200, BalanceBefore = 300 });
+
+            _mockRepository
+                .Setup(repo => repo.InsertOnlineWalletEntryAsync(It.IsAny<OnlineWalletEntry>()))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            Balance result = await _service.DepositFundsAsync(deposit);
+
+            // Assert
+            result.Amount.Should().Be(600);
+            _mockRepository.Verify(repo => repo.InsertOnlineWalletEntryAsync(It.IsAny<OnlineWalletEntry>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task DepositFundsAsync_ShouldNotChangeBalance_WhenDepositIsZero()
+        {
+            // Arrange
+            var deposit = new Deposit { Amount = 0 };
+            _mockRepository
+                .Setup(repo => repo.GetLastOnlineWalletEntryAsync())
+                .ReturnsAsync(new OnlineWalletEntry { Amount = 100, BalanceBefore = 200 });
+
+            _mockRepository
+                .Setup(repo => repo.InsertOnlineWalletEntryAsync(It.IsAny<OnlineWalletEntry>()))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            Balance result = await _service.DepositFundsAsync(deposit);
+
+            // Assert
+            result.Amount.Should().Be(300);
+            _mockRepository.Verify(repo => repo.InsertOnlineWalletEntryAsync(It.IsAny<OnlineWalletEntry>()), Times.Once);
+        }
     }
 }
