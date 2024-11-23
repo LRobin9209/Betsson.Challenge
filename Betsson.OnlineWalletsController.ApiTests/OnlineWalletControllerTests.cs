@@ -66,5 +66,36 @@ namespace Betsson.OnlineWalletsController.ApiTests
             balanceResponse.Should().NotBeNull();
             balanceResponse.Amount.Should().Be(150);
         }
+
+        [Fact]
+        public async Task Deposit_ShouldReturnOkWithUpdatedBalance()
+        {
+            // Arrange
+            var depositRequest = new DepositRequest { Amount = 100 };
+            var client = _factory.CreateClient();
+
+            // Act
+            var response = await client.PostAsJsonAsync("/OnlineWallet/Deposit", depositRequest);
+
+            // Assert
+            response.EnsureSuccessStatusCode();
+            var balanceResponse = await response.Content.ReadFromJsonAsync<BalanceResponse>();
+            Assert.True(balanceResponse.Amount > 0);
+        }
+
+        [Fact]
+        public async Task Deposit_ShouldReturnBadRequestForNegativeAmount()
+        {
+            // Arrange
+            var depositRequest = new DepositRequest { Amount = -100 };
+            var client = _factory.CreateClient();
+
+            // Act
+            var response = await client.PostAsJsonAsync("/OnlineWallet/Deposit", depositRequest);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
     }
 }
