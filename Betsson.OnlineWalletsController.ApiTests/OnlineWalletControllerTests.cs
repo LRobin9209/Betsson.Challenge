@@ -1,15 +1,19 @@
 ﻿using AutoMapper;
 using Betsson.OnlineWallets.Data.Models;
 using Betsson.OnlineWallets.Data.Repositories;
+using Betsson.OnlineWallets.Exceptions;
 using Betsson.OnlineWallets.Models;
+using Betsson.OnlineWallets.Services;
 using Betsson.OnlineWallets.Web;
+using Betsson.OnlineWallets.Web.Controllers;
 using Betsson.OnlineWallets.Web.Models;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Moq;
-using System.Net.Http.Json;
 using System.Net;
+using System.Net.Http.Json;
 
 namespace Betsson.OnlineWalletsController.ApiTests
 {
@@ -95,6 +99,52 @@ namespace Betsson.OnlineWalletsController.ApiTests
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task Withdraw_ShouldReturnOkWithUpdatedBalance()
+        {
+            // Arrange
+            var withdrawRequest = new WithdrawalRequest { Amount = 50 };
+            var client = _factory.CreateClient();
+
+            // Act
+            var response = await client.PostAsJsonAsync("/OnlineWallet/Withdraw", withdrawRequest);
+
+            // Assert
+            response.EnsureSuccessStatusCode();
+            var balanceResponse = await response.Content.ReadFromJsonAsync<BalanceResponse>();
+            Assert.True(balanceResponse.Amount >= 0); 
+        }
+
+        [Fact]
+        public async Task Withdraw_ShouldThrowInsufficientBalanceException_WhenBalanceIsLow()
+        {
+            // Arrange
+            var withdrawRequest = new WithdrawalRequest { Amount = 1000 };  
+            var client = _factory.CreateClient();
+
+            var mockOnlineWalletService = new Mock<IOnlineWalletService>();
+            mockOnlineWalletService.Setup(service => service.GetBalanceAsync())
+                .ReturnsAsync(new Balance { Amount = 500 });
+
+            mockOnlineWalletService.Setup(service => service.WithdrawFundsAsync(It.IsAny<Withdrawal>()))
+                .ThrowsAsync(new InsufficientBalanceException());
+
+            var controller = new OnlineWalletController(
+                Mock.Of<ILogger<OnlineWalletController>>(),
+                Mock.Of<IMapper>(),
+                mockOnlineWalletService.Object
+            );
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InsufficientBalanceException>(async () =>
+            {
+                await controller.Withdraw(withdrawRequest);
+            });
+
+            // Assert
+            Assert.NotNull(exception);
         }
 
     }
